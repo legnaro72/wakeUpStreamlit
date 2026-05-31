@@ -21,8 +21,9 @@ jobs:
 
       - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install playwright
           playwright install chromium
 
       - name: Wake Streamlit apps
-        run: python wake_streamlit.py
+        run: python -u wake_streamlit.py
