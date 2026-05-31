@@ -1,4 +1,4 @@
-name: Wake Streamlit Apps (Manual)
+name: Wake Streamlit Apps Manual
 
 on:
   workflow_dispatch:
@@ -6,6 +6,7 @@ on:
 jobs:
   wake:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -16,7 +17,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Playwright
+      - name: Install dependencies
         run: |
           pip install playwright
           playwright install chromium

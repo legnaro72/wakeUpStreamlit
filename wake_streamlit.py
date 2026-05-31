@@ -1,6 +1,5 @@
-from datetime import datetime
-from zoneinfo import ZoneInfo
 from playwright.sync_api import sync_playwright
+from datetime import datetime
 
 APPS = [
     "https://farm-tornei-subbuteo-superba-all-db.streamlit.app/",
@@ -18,28 +17,89 @@ APPS = [
     "https://torneo-subbuteo-ff-piercrew-ita-all-db.streamlit.app/",
     "https://torneo-subbuteo-piercrew-new-version-svizzero-alldb.streamlit.app/",
     "https://edit-piercrew-club-all-db-new.streamlit.app/",
-	"https://ddgpilli.streamlit.app/",
+    "https://ddgpilli.streamlit.app/"
 ]
 
-now_rome = datetime.now(ZoneInfo("Europe/Rome"))
-
-if now_rome.hour not in [7, 19]:
-    print(f"Ora italiana: {now_rome}. Non è ora di svegliare le app.")
-    raise SystemExit(0)
-
-print(f"Ora italiana: {now_rome}. Sveglio le app Streamlit...")
+print("=" * 80)
+print("STREAMLIT WAKEUP")
+print(datetime.now())
+print("=" * 80)
 
 with sync_playwright() as p:
-    browser = p.chromium.launch()
-    page = browser.new_page()
+
+    browser = p.chromium.launch(
+        headless=True
+    )
 
     for url in APPS:
+
+        print()
+        print("-" * 80)
+        print(f"APP: {url}")
+        print("-" * 80)
+
+        page = None
+
         try:
-            print(f"Apro: {url}")
-            page.goto(url, wait_until="networkidle", timeout=120_000)
-            page.wait_for_timeout(15_000)
-            print(f"OK: {url}")
+
+            page = browser.new_page()
+
+            print("Apertura URL...")
+
+            page.goto(
+                url,
+                timeout=180000,
+                wait_until="domcontentloaded"
+            )
+
+            page.wait_for_timeout(5000)
+
+            try:
+
+                wake_button = page.get_by_text(
+                    "Yes, get this app back up!"
+                )
+
+                wake_button.click(timeout=10000)
+
+                print("APP IN SLEEP - Bottone di wake-up cliccato")
+
+                page.wait_for_timeout(60000)
+
+            except Exception:
+
+                print("APP già attiva oppure bottone wake-up non presente")
+
+            try:
+
+                page.reload(timeout=180000)
+
+                page.wait_for_timeout(15000)
+
+            except Exception as e:
+
+                print(f"Reload non riuscito: {e}")
+
+            title = page.title()
+
+            print(f"Titolo pagina: {title}")
+            print("Completata")
+
         except Exception as e:
-            print(f"ERRORE su {url}: {e}")
+
+            print(f"ERRORE: {e}")
+
+        finally:
+
+            if page:
+                try:
+                    page.close()
+                except:
+                    pass
 
     browser.close()
+
+print()
+print("=" * 80)
+print("FINE")
+print("=" * 80)
