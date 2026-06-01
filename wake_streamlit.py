@@ -17,6 +17,7 @@ APPS = [
     "https://torneo-subbuteo-ff-piercrew-ita-all-db.streamlit.app/",
     "https://torneo-subbuteo-piercrew-new-version-svizzero-alldb.streamlit.app/",
     "https://edit-piercrew-club-all-db-new.streamlit.app/",
+    "https://dediche-musicali-ff.streamlit.app/",
     "https://ddgpilli.streamlit.app/"
 ]
 
