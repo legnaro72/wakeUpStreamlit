@@ -34,6 +34,9 @@ jobs:
       STREAMLIT_URLS: ${{ inputs.streamlit_urls }}
       RENDER_DURATION_MINUTES: ${{ inputs.render_duration_minutes }}
       RENDER_INTERVAL_MINUTES: ${{ inputs.render_interval_minutes }}
+      HTTP_TIMEOUT_SECONDS: "90"
+      RENDER_ATTEMPTS: "2"
+      RENDER_RETRY_DELAY_SECONDS: "15"
       FORCE_PING: "true"
 
     steps:

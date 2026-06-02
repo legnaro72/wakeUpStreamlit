@@ -190,6 +190,8 @@ Ogni ping Render stampa almeno:
 - status HTTP
 - esito
 
+Per gestire cold start lenti di Render, ogni chiamata usa timeout HTTP di 90 secondi e fino a 2 tentativi, con 15 secondi di pausa tra i tentativi. Questi valori sono configurabili con `HTTP_TIMEOUT_SECONDS`, `RENDER_ATTEMPTS` e `RENDER_RETRY_DELAY_SECONDS`.
+
 Esempio:
 
 ```text

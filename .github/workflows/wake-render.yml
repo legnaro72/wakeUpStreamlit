@@ -12,6 +12,9 @@ jobs:
     env:
       WAKE_TARGETS: render
       RENDER_URLS: https://therapy-reminder.onrender.com/
+      HTTP_TIMEOUT_SECONDS: "90"
+      RENDER_ATTEMPTS: "2"
+      RENDER_RETRY_DELAY_SECONDS: "15"
 
     steps:
       - name: Checkout repository

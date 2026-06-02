@@ -14,7 +14,9 @@ RENDER_WINDOWS = (
     (time(7, 0), time(10, 30)),
     (time(20, 0), time(23, 30)),
 )
-HTTP_TIMEOUT_SECONDS = 30
+DEFAULT_HTTP_TIMEOUT_SECONDS = 90
+DEFAULT_RENDER_ATTEMPTS = 2
+DEFAULT_RENDER_RETRY_DELAY_SECONDS = 15
 DEFAULT_RENDER_DURATION_MINUTES = 0
 DEFAULT_RENDER_INTERVAL_MINUTES = 12
 
@@ -86,14 +88,39 @@ def log_http_result(now: datetime, url: str, status: int | str, result: str) -> 
 def ping_render_url(url: str, now: datetime) -> bool:
     import requests
 
-    try:
-        response = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
-        success = 200 <= response.status_code < 400
-        log_http_result(now, url, response.status_code, "SUCCESS" if success else "ERROR")
-        return success
-    except requests.RequestException as exc:
-        log_http_result(now, url, "N/A", f"ERROR - {exc}")
-        return False
+    attempts = max(1, positive_int_from_env("RENDER_ATTEMPTS", DEFAULT_RENDER_ATTEMPTS))
+    retry_delay_seconds = positive_int_from_env(
+        "RENDER_RETRY_DELAY_SECONDS",
+        DEFAULT_RENDER_RETRY_DELAY_SECONDS,
+    )
+    timeout_seconds = max(1, positive_int_from_env("HTTP_TIMEOUT_SECONDS", DEFAULT_HTTP_TIMEOUT_SECONDS))
+
+    for attempt in range(1, attempts + 1):
+        attempt_now = now if attempt == 1 else datetime.now(ZoneInfo(TIMEZONE))
+
+        if attempts > 1:
+            print(f"Render ping attempt {attempt}/{attempts}")
+
+        try:
+            response = requests.get(url, timeout=timeout_seconds)
+            success = 200 <= response.status_code < 400
+            log_http_result(
+                attempt_now,
+                url,
+                response.status_code,
+                "SUCCESS" if success else "ERROR",
+            )
+
+            if success:
+                return True
+        except requests.RequestException as exc:
+            log_http_result(attempt_now, url, "N/A", f"ERROR - {exc}")
+
+        if attempt < attempts and retry_delay_seconds > 0:
+            print(f"Retry Render ping in {retry_delay_seconds} seconds")
+            time_module.sleep(retry_delay_seconds)
+
+    return False
 
 
 def ping_render_urls(now: datetime, urls: list[str]) -> bool:
