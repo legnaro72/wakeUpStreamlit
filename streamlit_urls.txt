@@ -1,0 +1,18 @@
+https://farm-tornei-subbuteo-superba-all-db.streamlit.app/
+https://torneo-subbuteo-superba-ita-all-db.streamlit.app/
+https://torneo-subbuteo-ff-superba-ita-all-db.streamlit.app/
+https://torneo-subbuteo-superba-new-version-svizzero-alldb.streamlit.app/
+https://edit-superba-club-all-db-new.streamlit.app/
+https://farm-tornei-subbuteo-tigullio-all-db.streamlit.app/
+https://torneo-subbuteo-tigullio-ita-all-db.streamlit.app/
+https://torneo-subbuteo-ff-tigullio-ita-all-db.streamlit.app/
+https://torneo-subbuteo-tigullio-new-version-svizzero-alldb.streamlit.app/
+https://edit-tigullio-club-all-db-new.streamlit.app/
+https://farm-tornei-subbuteo-piercrew-all-db.streamlit.app/
+https://torneo-subbuteo-piercrew-ita-all-db.streamlit.app/
+https://torneo-subbuteo-ff-piercrew-ita-all-db.streamlit.app/
+https://torneo-subbuteo-piercrew-new-version-svizzero-alldb.streamlit.app/
+https://edit-piercrew-club-all-db-new.streamlit.app/
+https://dediche-musicali-ff.streamlit.app/
+https://ddgpilli.streamlit.app/
+# Add the Wake Apps dashboard URL here after deploying app.py to Streamlit.

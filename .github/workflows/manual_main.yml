@@ -6,24 +6,34 @@ on:
       targets:
         description: "Targets to run: streamlit, render, or all"
         required: false
-        default: "all"
+        default: "render"
       render_urls:
         description: "Comma-separated Render URLs"
         required: false
-        default: "https://therapy-reminder.onrender.com/"
+        default: ""
       streamlit_urls:
         description: "Optional comma-separated Streamlit URLs"
         required: false
         default: ""
+      render_duration_minutes:
+        description: "Render burst duration in minutes; 0 runs one ping only"
+        required: false
+        default: "120"
+      render_interval_minutes:
+        description: "Render burst interval in minutes"
+        required: false
+        default: "12"
 
 jobs:
   wake:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 130
     env:
       WAKE_TARGETS: ${{ inputs.targets }}
       RENDER_URLS: ${{ inputs.render_urls }}
       STREAMLIT_URLS: ${{ inputs.streamlit_urls }}
+      RENDER_DURATION_MINUTES: ${{ inputs.render_duration_minutes }}
+      RENDER_INTERVAL_MINUTES: ${{ inputs.render_interval_minutes }}
       FORCE_PING: "true"
 
     steps:
@@ -36,9 +46,15 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
+        run: python -m pip install --upgrade pip
+
+      - name: Install wake dependencies
+        run: python -m pip install -r requirements-wake.txt
+
+      - name: Install Streamlit wake dependencies
+        if: ${{ inputs.targets == 'streamlit' || inputs.targets == 'all' || contains(inputs.targets, 'streamlit') }}
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt "playwright>=1.44,<2"
+          python -m pip install "playwright>=1.44,<2"
           python -m playwright install chromium
 
       - name: Wake selected apps

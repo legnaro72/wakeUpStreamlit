@@ -7,6 +7,20 @@ La soluzione e' un'integrazione:
 - le app Streamlit continuano a usare Playwright e la logica del bottone `Yes, get this app back up!`
 - l'app Render usa una semplice richiesta HTTP con `requests`
 - i workflow sono separati, cosi' Render non usa browser headless
+- una dashboard Streamlit (`app.py`) mostra le app attualmente gestite
+
+## Liste app
+
+Le app gestite sono in due file:
+
+```text
+streamlit_urls.txt
+render_urls.txt
+```
+
+Per aggiungere una nuova app in modo permanente, aggiungi una riga al file corretto, fai commit e push.
+
+La dashboard Streamlit legge gli stessi file, quindi mostra sempre le app configurate nel repository.
 
 ## Workflow disponibili
 
@@ -50,10 +64,15 @@ Esegue:
 
 ```text
 WAKE_TARGETS=render
-RENDER_URLS=https://therapy-reminder.onrender.com/
 ```
 
 Usa solo `requests`, senza Playwright e senza browser headless.
+
+Gli URL sono letti da:
+
+```text
+render_urls.txt
+```
 
 Il workflow parte ogni 12 minuti nelle ore UTC che coprono le finestre richieste. Lo script filtra poi l'orario reale in `Europe/Rome`, quindi ora legale e ora solare sono gestite automaticamente.
 
@@ -83,11 +102,38 @@ Permette di lanciare manualmente:
 
 Il manuale usa `FORCE_PING=true`, quindi il ping Render parte anche fuori dalle fasce orarie.
 
+Di default il workflow manuale esegue Render per due ore:
+
+```text
+targets=render
+render_duration_minutes=120
+render_interval_minutes=12
+```
+
+In pratica:
+
+- ping immediato
+- attesa 12 minuti
+- nuovo ping
+- ripetizione fino al termine delle due ore
+
+Per fare un solo ping manuale Render, imposta:
+
+```text
+render_duration_minutes=0
+```
+
+Per provare URL Render al volo senza modificare file, usa l'input `render_urls` con URL separati da virgola.
+
 ## Configurazione
 
 ### Streamlit
 
-Gli URL Streamlit storici sono nel codice come default.
+Gli URL Streamlit sono configurati in:
+
+```text
+streamlit_urls.txt
+```
 
 Per sovrascriverli senza modificare codice:
 
@@ -97,10 +143,10 @@ STREAMLIT_URLS=https://app1.streamlit.app/,https://app2.streamlit.app/
 
 ### Render
 
-URL di default:
+Gli URL Render sono configurati in:
 
 ```text
-https://therapy-reminder.onrender.com/
+render_urls.txt
 ```
 
 Per configurare uno o piu' URL Render:
@@ -135,7 +181,26 @@ Result: SUCCESS
 2. Verifica che GitHub Actions sia abilitato.
 3. Non serve configurare nulla su Render.
 4. Non serve configurare variabili su GitHub se gli URL di default vanno bene.
-5. Per aggiungere altre app Render, modifica solo `RENDER_URLS` nel workflow `wake-render.yml`.
+5. Per aggiungere app Render o Streamlit in modo permanente, modifica i file `render_urls.txt` o `streamlit_urls.txt`.
+
+## Dashboard Streamlit
+
+File:
+
+```text
+app.py
+```
+
+Mostra:
+
+- app Streamlit gestite
+- app Render gestite
+- totale app
+- workflow GitHub Actions associati
+
+Per deployarla su Streamlit Cloud, usa questo repository e `app.py` come entry point.
+
+Dopo il deploy, aggiungi l'URL della dashboard in `streamlit_urls.txt`, cosi' anche questa app viene mantenuta sveglia.
 
 ## Endpoint `/healthz`
 
@@ -162,6 +227,7 @@ La soluzione resta completamente gratuita:
 ## Limitazioni
 
 - GitHub Actions scheduled puo' partire con qualche minuto di ritardo.
+- Il manuale Render da due ore mantiene un job GitHub Actions attivo per circa due ore.
 - Se GitHub Actions viene disabilitato, i ping non partono.
 - Se il repository resta inattivo a lungo, GitHub puo' sospendere i workflow schedulati.
 - Render potrebbe cambiare policy sui piani gratuiti o sulla gestione dello sleep.

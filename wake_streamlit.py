@@ -1,53 +1,55 @@
 import os
 import sys
+import time as time_module
 from datetime import datetime, time
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 
-STREAMLIT_DEFAULT_URLS = [
-    "https://farm-tornei-subbuteo-superba-all-db.streamlit.app/",
-    "https://torneo-subbuteo-superba-ita-all-db.streamlit.app/",
-    "https://torneo-subbuteo-ff-superba-ita-all-db.streamlit.app/",
-    "https://torneo-subbuteo-superba-new-version-svizzero-alldb.streamlit.app/",
-    "https://edit-superba-club-all-db-new.streamlit.app/",
-    "https://farm-tornei-subbuteo-tigullio-all-db.streamlit.app/",
-    "https://torneo-subbuteo-tigullio-ita-all-db.streamlit.app/",
-    "https://torneo-subbuteo-ff-tigullio-ita-all-db.streamlit.app/",
-    "https://torneo-subbuteo-tigullio-new-version-svizzero-alldb.streamlit.app/",
-    "https://edit-tigullio-club-all-db-new.streamlit.app/",
-    "https://farm-tornei-subbuteo-piercrew-all-db.streamlit.app/",
-    "https://torneo-subbuteo-piercrew-ita-all-db.streamlit.app/",
-    "https://torneo-subbuteo-ff-piercrew-ita-all-db.streamlit.app/",
-    "https://torneo-subbuteo-piercrew-new-version-svizzero-alldb.streamlit.app/",
-    "https://edit-piercrew-club-all-db-new.streamlit.app/",
-    "https://dediche-musicali-ff.streamlit.app/",
-    "https://ddgpilli.streamlit.app/",
-]
-
-RENDER_DEFAULT_URLS = ["https://therapy-reminder.onrender.com/"]
+ROOT_DIR = Path(__file__).resolve().parent
+STREAMLIT_URLS_FILE = ROOT_DIR / "streamlit_urls.txt"
+RENDER_URLS_FILE = ROOT_DIR / "render_urls.txt"
 TIMEZONE = "Europe/Rome"
 RENDER_WINDOWS = (
     (time(7, 0), time(10, 30)),
     (time(20, 0), time(23, 30)),
 )
 HTTP_TIMEOUT_SECONDS = 30
+DEFAULT_RENDER_DURATION_MINUTES = 0
+DEFAULT_RENDER_INTERVAL_MINUTES = 12
 
 
-def parse_urls(raw_urls: str | None, default_urls: list[str]) -> list[str]:
+def parse_urls(raw_urls: str | None) -> list[str]:
     if not raw_urls:
-        return default_urls
+        return []
 
-    urls = [url.strip() for url in raw_urls.split(",") if url.strip()]
-    return urls or default_urls
+    return [url.strip() for url in raw_urls.split(",") if url.strip()]
+
+
+def read_urls_file(path: Path) -> list[str]:
+    if not path.exists():
+        return []
+
+    urls = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        value = line.strip()
+        if value and not value.startswith("#"):
+            urls.append(value)
+    return urls
+
+
+def env_or_file_urls(env_value: str | None, path: Path) -> list[str]:
+    env_urls = parse_urls(env_value)
+    return env_urls or read_urls_file(path)
 
 
 def configured_streamlit_urls() -> list[str]:
-    return parse_urls(os.getenv("STREAMLIT_URLS"), STREAMLIT_DEFAULT_URLS)
+    return env_or_file_urls(os.getenv("STREAMLIT_URLS"), STREAMLIT_URLS_FILE)
 
 
 def configured_render_urls() -> list[str]:
     raw_urls = os.getenv("RENDER_URLS") or os.getenv("PING_URLS") or os.getenv("PING_URL")
-    return parse_urls(raw_urls, RENDER_DEFAULT_URLS)
+    return env_or_file_urls(raw_urls, RENDER_URLS_FILE)
 
 
 def configured_targets() -> set[str]:
@@ -59,6 +61,18 @@ def configured_targets() -> set[str]:
 def is_inside_render_window(now: datetime) -> bool:
     current_time = now.time().replace(tzinfo=None)
     return any(start <= current_time <= end for start, end in RENDER_WINDOWS)
+
+
+def positive_int_from_env(name: str, default: int) -> int:
+    raw_value = os.getenv(name)
+    if not raw_value:
+        return default
+
+    try:
+        return max(0, int(raw_value))
+    except ValueError:
+        print(f"Warning: invalid {name}={raw_value!r}; using {default}")
+        return default
 
 
 def log_http_result(now: datetime, url: str, status: int | str, result: str) -> None:
@@ -82,6 +96,14 @@ def ping_render_url(url: str, now: datetime) -> bool:
         return False
 
 
+def ping_render_urls(now: datetime, urls: list[str]) -> bool:
+    if not urls:
+        print("Result: ERROR - no Render URLs configured")
+        return False
+
+    return all(ping_render_url(url, now) for url in urls)
+
+
 def wake_render_apps(now: datetime) -> bool:
     force_ping = os.getenv("FORCE_PING", "").lower() in {"1", "true", "yes"}
 
@@ -91,7 +113,32 @@ def wake_render_apps(now: datetime) -> bool:
         return True
 
     urls = configured_render_urls()
-    return all(ping_render_url(url, now) for url in urls)
+    duration_minutes = positive_int_from_env("RENDER_DURATION_MINUTES", DEFAULT_RENDER_DURATION_MINUTES)
+    interval_minutes = positive_int_from_env("RENDER_INTERVAL_MINUTES", DEFAULT_RENDER_INTERVAL_MINUTES)
+
+    if duration_minutes == 0:
+        return ping_render_urls(now, urls)
+
+    deadline = time_module.monotonic() + (duration_minutes * 60)
+    interval_seconds = max(60, interval_minutes * 60)
+    iteration = 1
+    all_ok = True
+
+    while True:
+        current_now = datetime.now(ZoneInfo(TIMEZONE))
+        print(f"Render burst iteration: {iteration}")
+        all_ok = ping_render_urls(current_now, urls) and all_ok
+
+        if time_module.monotonic() >= deadline:
+            break
+
+        remaining_seconds = deadline - time_module.monotonic()
+        sleep_seconds = min(interval_seconds, remaining_seconds)
+        print(f"Next Render ping in {round(sleep_seconds / 60, 2)} minutes")
+        time_module.sleep(sleep_seconds)
+        iteration += 1
+
+    return all_ok
 
 
 def wake_streamlit_apps(now: datetime) -> bool:
@@ -99,6 +146,10 @@ def wake_streamlit_apps(now: datetime) -> bool:
 
     urls = configured_streamlit_urls()
     all_ok = True
+
+    if not urls:
+        print("Result: ERROR - no Streamlit URLs configured")
+        return False
 
     print("=" * 80)
     print("STREAMLIT WAKEUP")
