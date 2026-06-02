@@ -74,9 +74,9 @@ Gli URL sono letti da:
 render_urls.txt
 ```
 
-Il workflow parte ogni 12 minuti tutto il giorno. Lo script filtra poi l'orario reale in `Europe/Rome`, quindi ora legale e ora solare sono gestite automaticamente.
+Il workflow parte ogni 12 minuti tutto il giorno, ai minuti `07`, `19`, `31`, `43` e `55` di ogni ora. Lo script filtra poi l'orario reale in `Europe/Rome`, quindi ora legale e ora solare sono gestite automaticamente.
 
-Questo evita ambiguita' tra UTC, ora solare e ora legale: GitHub Actions schedula in UTC, mentre la decisione se fare davvero il ping viene presa dal codice Python usando `Europe/Rome`.
+Questo evita ambiguita' tra UTC, ora solare e ora legale: GitHub Actions schedula in UTC, mentre la decisione se fare davvero il ping viene presa dal codice Python usando `Europe/Rome`. I minuti non partono da `00` per ridurre il rischio di ritardi o run saltati nei momenti di maggior carico GitHub.
 
 Finestre Render:
 
@@ -85,8 +85,8 @@ Finestre Render:
 
 Frequenza effettiva:
 
-- 07:00, 07:12, 07:24, ..., 10:24
-- 20:00, 20:12, 20:24, ..., 23:24
+- 07:07, 07:19, 07:31, ..., 10:19
+- 20:07, 20:19, 20:31, ..., 23:19
 
 Fuori da queste finestre il workflow puo' comunque apparire nella lista GitHub Actions, ma lo script stampa `SKIPPED` e non chiama Render.
 
