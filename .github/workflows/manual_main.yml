@@ -1,12 +1,30 @@
-name: Wake Streamlit Apps Manual
+name: Wake Apps Manual
 
 on:
   workflow_dispatch:
+    inputs:
+      targets:
+        description: "Targets to run: streamlit, render, or all"
+        required: false
+        default: "all"
+      render_urls:
+        description: "Comma-separated Render URLs"
+        required: false
+        default: "https://therapy-reminder.onrender.com/"
+      streamlit_urls:
+        description: "Optional comma-separated Streamlit URLs"
+        required: false
+        default: ""
 
 jobs:
   wake:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      WAKE_TARGETS: ${{ inputs.targets }}
+      RENDER_URLS: ${{ inputs.render_urls }}
+      STREAMLIT_URLS: ${{ inputs.streamlit_urls }}
+      FORCE_PING: "true"
 
     steps:
       - name: Checkout repository
@@ -20,8 +38,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install playwright
-          playwright install chromium
+          python -m pip install -r requirements.txt "playwright>=1.44,<2"
+          python -m playwright install chromium
 
-      - name: Wake Streamlit apps
+      - name: Wake selected apps
         run: python -u wake_streamlit.py
