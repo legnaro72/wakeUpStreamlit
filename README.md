@@ -1,11 +1,12 @@
 # Wake Apps
 
-Repository per risvegliare applicazioni Streamlit Cloud e Render tramite GitHub Actions.
+Repository per risvegliare applicazioni Streamlit Cloud e gestire/diagnosticare il wake-up Render.
 
 La soluzione e' un'integrazione:
 
 - le app Streamlit continuano a usare Playwright e la logica del bottone `Yes, get this app back up!`
-- l'app Render usa una semplice richiesta HTTP con `requests`
+- l'app Render puo' essere chiamata manualmente o in backup tramite GitHub Actions
+- per Render, lo scheduling primario consigliato e' uno scheduler HTTP esterno
 - i workflow sono separati, cosi' Render non usa browser headless
 - una dashboard Streamlit (`app.py`) mostra le app attualmente gestite
 
@@ -23,6 +24,24 @@ Per aggiungere una nuova app in modo permanente, aggiungi una riga al file corre
 La dashboard Streamlit legge gli stessi file, quindi mostra sempre le app configurate nel repository.
 
 ## Workflow disponibili
+
+## Scheduling Render esterno
+
+Per Render la soluzione raccomandata non e' piu' affidarsi a GitHub Actions come scheduler primario.
+
+La soluzione consigliata e':
+
+```text
+scheduler esterno ogni 12 minuti -> endpoint Render protetto -> Python decide se eseguire o saltare
+```
+
+Specifica operativa:
+
+```text
+docs/render-external-scheduler.md
+```
+
+GitHub Actions resta utile come backup, diagnostica e lancio manuale.
 
 ### Diagnostica schedule
 
@@ -59,8 +78,22 @@ Mantiene la logica storica:
 Schedulazione attuale:
 
 ```cron
-0 6,18 * * *
+0 5,6,9,10,13,14,17,18,21,22 * * *
 ```
+
+Il cron GitHub e' in UTC. Lo script filtra poi l'orario reale in `Europe/Rome` usando:
+
+```text
+STREAMLIT_RUN_HOURS=7,11,15,19,23
+```
+
+Quindi il wake-up Streamlit effettivo avviene alle:
+
+```text
+07:00, 11:00, 15:00, 19:00, 23:00 Europe/Rome
+```
+
+La doppia lista di ore UTC serve a coprire sia ora solare sia ora legale. Se GitHub avvia un run candidato che in Italia non corrisponde a una delle ore configurate, lo script stampa `SKIPPED` e non apre Chromium.
 
 ### Render
 

@@ -77,6 +77,44 @@ def positive_int_from_env(name: str, default: int) -> int:
         return default
 
 
+def int_set_from_env(name: str) -> set[int]:
+    raw_value = os.getenv(name, "")
+    values = set()
+
+    for item in raw_value.split(","):
+        value = item.strip()
+        if not value:
+            continue
+
+        try:
+            values.add(int(value))
+        except ValueError:
+            print(f"Warning: invalid value {value!r} in {name}; ignoring it")
+
+    return values
+
+
+def force_streamlit_wake() -> bool:
+    return os.getenv("FORCE_STREAMLIT", "").lower() in {"1", "true", "yes"} or os.getenv(
+        "FORCE_PING",
+        "",
+    ).lower() in {"1", "true", "yes"}
+
+
+def should_wake_streamlit(now: datetime) -> bool:
+    run_hours = int_set_from_env("STREAMLIT_RUN_HOURS")
+
+    if force_streamlit_wake() or not run_hours:
+        return True
+
+    if now.hour in run_hours:
+        return True
+
+    print(now.strftime("%Y-%m-%d %H:%M:%S %Z"))
+    print(f"Result: SKIPPED - outside Streamlit wake-up hours for {TIMEZONE}: {sorted(run_hours)}")
+    return False
+
+
 def log_http_result(now: datetime, url: str, status: int | str, result: str) -> None:
     print(now.strftime("%Y-%m-%d %H:%M:%S %Z"))
     print(f"URL: {url}")
@@ -174,6 +212,9 @@ def wake_render_apps(now: datetime) -> bool:
 
 
 def wake_streamlit_apps(now: datetime) -> bool:
+    if not should_wake_streamlit(now):
+        return True
+
     try:
         from playwright.sync_api import sync_playwright
     except ModuleNotFoundError as exc:

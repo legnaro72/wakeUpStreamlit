@@ -126,7 +126,7 @@ with tab_workflows:
             "Nome": "Wake Streamlit Apps Scheduled",
             "File": "wake-streamlit.yml",
             "Target": "streamlit",
-            "Frequenza": "06:00 e 18:00 UTC",
+            "Frequenza": "07:00, 11:00, 15:00, 19:00, 23:00 Europe/Rome",
         },
         {
             "Nome": "Render Heartbeat Scheduled",
