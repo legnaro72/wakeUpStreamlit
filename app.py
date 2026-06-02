@@ -179,7 +179,7 @@ with tab_workflows:
         "Durata Render manuale",
         min_value=0,
         max_value=240,
-        value=0,
+        value=120,
         step=12,
     )
 

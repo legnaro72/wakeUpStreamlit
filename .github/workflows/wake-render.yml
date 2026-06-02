@@ -2,7 +2,7 @@ name: Wake Render App Scheduled
 
 on:
   schedule:
-    - cron: "0,12,24,36,48 5-9,18-22 * * *"
+    - cron: "0,12,24,36,48 * * * *"
   workflow_dispatch:
 
 jobs:

@@ -122,12 +122,16 @@ def wake_render_apps(now: datetime) -> bool:
     deadline = time_module.monotonic() + (duration_minutes * 60)
     interval_seconds = max(60, interval_minutes * 60)
     iteration = 1
-    all_ok = True
+    success_count = 0
+    error_count = 0
 
     while True:
         current_now = datetime.now(ZoneInfo(TIMEZONE))
         print(f"Render burst iteration: {iteration}")
-        all_ok = ping_render_urls(current_now, urls) and all_ok
+        if ping_render_urls(current_now, urls):
+            success_count += 1
+        else:
+            error_count += 1
 
         if time_module.monotonic() >= deadline:
             break
@@ -138,7 +142,8 @@ def wake_render_apps(now: datetime) -> bool:
         time_module.sleep(sleep_seconds)
         iteration += 1
 
-    return all_ok
+    print(f"Render burst summary: {success_count} success, {error_count} error")
+    return success_count > 0
 
 
 def wake_streamlit_apps(now: datetime) -> bool:
