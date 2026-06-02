@@ -24,6 +24,16 @@ La dashboard Streamlit legge gli stessi file, quindi mostra sempre le app config
 
 ## Workflow disponibili
 
+### Diagnostica schedule
+
+File:
+
+```text
+.github/workflows/schedule-canary.yml
+```
+
+Esegue solo un comando `date` ogni 5 minuti. Serve a verificare se GitHub sta consegnando gli eventi `schedule` al repository. Se questo workflow non parte automaticamente, il problema non e' Render e non e' il codice Python: e' lo scheduling GitHub Actions del repository.
+
 ### Streamlit
 
 File:
