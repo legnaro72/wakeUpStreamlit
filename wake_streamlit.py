@@ -142,7 +142,20 @@ def wake_render_apps(now: datetime) -> bool:
 
 
 def wake_streamlit_apps(now: datetime) -> bool:
-    from playwright.sync_api import sync_playwright
+    try:
+        from playwright.sync_api import sync_playwright
+    except ModuleNotFoundError as exc:
+        if exc.name != "playwright":
+            raise
+
+        print("=" * 80)
+        print("STREAMLIT WAKEUP")
+        print(now.strftime("%Y-%m-%d %H:%M:%S %Z"))
+        print("=" * 80)
+        print("Result: ERROR - Playwright non installato")
+        print('Installa le dipendenze Streamlit wake con: python -m pip install "playwright>=1.44,<2"')
+        print("Poi installa Chromium con: python -m playwright install chromium")
+        return False
 
     urls = configured_streamlit_urls()
     all_ok = True
@@ -231,5 +244,22 @@ def main() -> int:
     return 0 if all(results) else 1
 
 
+def stop_if_running_in_streamlit() -> None:
+    try:
+        import streamlit as st
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
+    except Exception:
+        return
+
+    if get_script_run_ctx() is None:
+        return
+
+    st.error("Questo file e' uno script di automazione, non una dashboard Streamlit.")
+    st.code("python -u wake_streamlit.py", language="powershell")
+    st.info("Per aprire la dashboard usa invece: streamlit run app.py")
+    st.stop()
+
+
 if __name__ == "__main__":
+    stop_if_running_in_streamlit()
     sys.exit(main())

@@ -50,21 +50,21 @@ tab_streamlit, tab_render, tab_all, tab_workflows = st.tabs(
 with tab_streamlit:
     st.dataframe(
         app_rows("Streamlit", streamlit_urls),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
 with tab_render:
     st.dataframe(
         app_rows("Render", render_urls),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
 with tab_all:
     st.dataframe(
         app_rows("Streamlit", streamlit_urls) + app_rows("Render", render_urls),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
@@ -90,6 +90,6 @@ with tab_workflows:
                 "Frequenza": "Manuale",
             },
         ],
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )

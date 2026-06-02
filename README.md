@@ -127,6 +127,26 @@ Per provare URL Render al volo senza modificare file, usa l'input `render_urls` 
 
 ## Configurazione
 
+## Esecuzione locale
+
+Per eseguire solo il wake Render in locale:
+
+```powershell
+python -m pip install -r requirements-wake.txt
+$env:WAKE_TARGETS = "render"
+python -u wake_streamlit.py
+```
+
+Per eseguire anche il wake Streamlit serve Playwright con Chromium:
+
+```powershell
+python -m pip install -r requirements-wake.txt
+python -m pip install "playwright>=1.44,<2"
+python -m playwright install chromium
+$env:WAKE_TARGETS = "streamlit"
+python -u wake_streamlit.py
+```
+
 ### Streamlit
 
 Gli URL Streamlit sono configurati in:
