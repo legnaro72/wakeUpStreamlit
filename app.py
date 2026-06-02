@@ -129,10 +129,16 @@ with tab_workflows:
             "Frequenza": "06:00 e 18:00 UTC",
         },
         {
-            "Nome": "Wake Render App Scheduled",
-            "File": "wake-render.yml",
+            "Nome": "Render Heartbeat Scheduled",
+            "File": "render-heartbeat.yml",
             "Target": "render",
             "Frequenza": "Ogni 12 minuti nelle finestre Europe/Rome",
+        },
+        {
+            "Nome": "Wake Render App Manual Ping",
+            "File": "wake-render.yml",
+            "Target": "render",
+            "Frequenza": "Manuale singolo",
         },
         {
             "Nome": "Wake Apps Manual",

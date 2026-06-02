@@ -54,7 +54,13 @@ Schedulazione attuale:
 
 ### Render
 
-File:
+File schedulato automatico:
+
+```text
+.github/workflows/render-heartbeat.yml
+```
+
+File per ping manuale singolo:
 
 ```text
 .github/workflows/wake-render.yml
