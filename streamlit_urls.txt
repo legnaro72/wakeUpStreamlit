@@ -15,4 +15,11 @@ https://torneo-subbuteo-piercrew-new-version-svizzero-alldb.streamlit.app/
 https://edit-piercrew-club-all-db-new.streamlit.app/
 https://dediche-musicali-ff.streamlit.app/
 https://ddgpilli.streamlit.app/
+https://accountmanager-aa.streamlit.app/
+https://viewkpi.streamlit.app/
+https://locandine2word.streamlit.app/
+https://pillitool-mailinglist.streamlit.app/
+https://updatenews-cm.streamlit.app/
+https://wakeupapp.streamlit.app/
+
 # Add the Wake Apps dashboard URL here after deploying app.py to Streamlit.
