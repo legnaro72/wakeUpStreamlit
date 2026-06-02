@@ -217,10 +217,21 @@ Mostra:
 - app Render gestite
 - totale app
 - workflow GitHub Actions associati
+- pulsanti per avviare i workflow GitHub Actions
 
 Per deployarla su Streamlit Cloud, usa questo repository e `app.py` come entry point.
 
 Dopo il deploy, aggiungi l'URL della dashboard in `streamlit_urls.txt`, cosi' anche questa app viene mantenuta sveglia.
+
+Per avviare i workflow dalla dashboard, configura questi secrets o variabili d'ambiente:
+
+```text
+GITHUB_REPOSITORY=owner/nome-repository
+GITHUB_TOKEN=token-github
+GITHUB_REF_NAME=main
+```
+
+Il token deve poter avviare GitHub Actions sul repository. Per un fine-grained personal access token, abilita i permessi `Actions: Read and write` sul repository.
 
 ## Endpoint `/healthz`
 
