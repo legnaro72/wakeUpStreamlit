@@ -81,19 +81,13 @@ Schedulazione attuale:
 0 5,6,9,10,13,14,17,18,21,22 * * *
 ```
 
-Il cron GitHub e' in UTC. Lo script filtra poi l'orario reale in `Europe/Rome` usando:
-
-```text
-STREAMLIT_RUN_HOURS=7,11,15,19,23
-```
-
-Quindi il wake-up Streamlit effettivo avviene alle:
+Il cron GitHub e' in UTC e copre gli orari italiani desiderati sia in ora solare sia in ora legale. Gli orari obiettivo sono:
 
 ```text
 07:00, 11:00, 15:00, 19:00, 23:00 Europe/Rome
 ```
 
-La doppia lista di ore UTC serve a coprire sia ora solare sia ora legale. Se GitHub avvia un run candidato che in Italia non corrisponde a una delle ore configurate, lo script stampa `SKIPPED` e non apre Chromium.
+Lo script Streamlit non filtra piu' l'orario: se GitHub avvia il workflow, anche in ritardo, il wake-up viene eseguito. Questo evita run verdi ma inutili causati dai ritardi dello scheduler GitHub.
 
 ### Render
 

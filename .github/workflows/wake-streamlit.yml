@@ -11,8 +11,6 @@ jobs:
     timeout-minutes: 30
     env:
       WAKE_TARGETS: streamlit
-      STREAMLIT_RUN_HOURS: "7,11,15,19,23"
-      FORCE_STREAMLIT: ${{ github.event_name == 'workflow_dispatch' }}
 
     steps:
       - name: Checkout repository
