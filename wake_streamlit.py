@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import time as time_module
 from datetime import datetime, time
@@ -19,6 +20,23 @@ DEFAULT_RENDER_ATTEMPTS = 2
 DEFAULT_RENDER_RETRY_DELAY_SECONDS = 15
 DEFAULT_RENDER_DURATION_MINUTES = 0
 DEFAULT_RENDER_INTERVAL_MINUTES = 12
+DEFAULT_STREAMLIT_INITIAL_WAIT_SECONDS = 12
+DEFAULT_STREAMLIT_WAKE_WAIT_SECONDS = 75
+DEFAULT_STREAMLIT_RELOAD_WAIT_SECONDS = 30
+STREAMLIT_READY_SELECTORS = (
+    '[data-testid="stAppViewContainer"]',
+    '[data-testid="stApp"]',
+    '.stApp',
+)
+WAKE_BUTTON_PATTERN = re.compile(
+    r"(?:yes,?\s*)?(?:get|wake)(?:\s+this)?\s+app(?:\s+back)?\s+up!?",
+    re.IGNORECASE,
+)
+SLEEP_MESSAGE_PATTERN = re.compile(
+    r"(?:this\s+)?app\s+(?:has\s+gone|is)\s+to\s+sleep|"
+    r"(?:get|wake)(?:\s+this)?\s+app(?:\s+back)?\s+up",
+    re.IGNORECASE,
+)
 
 
 def parse_urls(raw_urls: str | None) -> list[str]:
@@ -26,6 +44,10 @@ def parse_urls(raw_urls: str | None) -> list[str]:
         return []
 
     return [url.strip() for url in raw_urls.split(",") if url.strip()]
+
+
+def unique_urls(urls: list[str]) -> list[str]:
+    return list(dict.fromkeys(urls))
 
 
 def read_urls_file(path: Path) -> list[str]:
@@ -42,7 +64,7 @@ def read_urls_file(path: Path) -> list[str]:
 
 def env_or_file_urls(env_value: str | None, path: Path) -> list[str]:
     env_urls = parse_urls(env_value)
-    return env_urls or read_urls_file(path)
+    return unique_urls(env_urls or read_urls_file(path))
 
 
 def configured_streamlit_urls() -> list[str]:
@@ -173,6 +195,131 @@ def wake_render_apps(now: datetime) -> bool:
     return success_count > 0
 
 
+def visible_wake_button(page):
+    candidates = (
+        page.get_by_role("button", name=WAKE_BUTTON_PATTERN),
+        page.get_by_text(WAKE_BUTTON_PATTERN, exact=False),
+    )
+
+    for candidate_group in candidates:
+        try:
+            for index in range(candidate_group.count()):
+                candidate = candidate_group.nth(index)
+                if candidate.is_visible(timeout=1000):
+                    return candidate
+        except Exception:
+            continue
+
+    return None
+
+
+def streamlit_app_is_ready(page) -> bool:
+    for selector in STREAMLIT_READY_SELECTORS:
+        try:
+            if page.locator(selector).first.is_visible(timeout=1000):
+                return True
+        except Exception:
+            continue
+
+    return False
+
+
+def page_contains_sleep_message(page) -> bool:
+    try:
+        body_text = page.locator("body").inner_text(timeout=3000)
+    except Exception:
+        return False
+
+    return bool(SLEEP_MESSAGE_PATTERN.search(body_text))
+
+
+def wait_for_initial_streamlit_state(page, timeout_seconds: int):
+    deadline = time_module.monotonic() + timeout_seconds
+    saw_sleep_message = False
+
+    while time_module.monotonic() < deadline:
+        wake_button = visible_wake_button(page)
+        if wake_button is not None:
+            return "sleeping", wake_button
+
+        if streamlit_app_is_ready(page):
+            return "active", None
+
+        saw_sleep_message = saw_sleep_message or page_contains_sleep_message(page)
+        page.wait_for_timeout(1000)
+
+    return ("sleeping_without_button" if saw_sleep_message else "unknown"), None
+
+
+def wait_for_streamlit_ready(page, timeout_seconds: int) -> bool:
+    deadline = time_module.monotonic() + timeout_seconds
+
+    while time_module.monotonic() < deadline:
+        if streamlit_app_is_ready(page):
+            return True
+        page.wait_for_timeout(1000)
+
+    return False
+
+
+def wake_one_streamlit_app(browser, url: str) -> tuple[str, str]:
+    initial_wait_seconds = max(
+        1,
+        positive_int_from_env(
+            "STREAMLIT_INITIAL_WAIT_SECONDS",
+            DEFAULT_STREAMLIT_INITIAL_WAIT_SECONDS,
+        ),
+    )
+    wake_wait_seconds = max(
+        1,
+        positive_int_from_env(
+            "STREAMLIT_WAKE_WAIT_SECONDS",
+            DEFAULT_STREAMLIT_WAKE_WAIT_SECONDS,
+        ),
+    )
+    reload_wait_seconds = max(
+        1,
+        positive_int_from_env(
+            "STREAMLIT_RELOAD_WAIT_SECONDS",
+            DEFAULT_STREAMLIT_RELOAD_WAIT_SECONDS,
+        ),
+    )
+
+    page = browser.new_page()
+
+    try:
+        print("Apertura URL...")
+        response = page.goto(url, timeout=180000, wait_until="domcontentloaded")
+        if response is not None and response.status >= 400:
+            return "error", f"HTTP {response.status}"
+
+        state, wake_button = wait_for_initial_streamlit_state(page, initial_wait_seconds)
+
+        if state == "active":
+            return "active", page.title()
+
+        if state == "sleeping_without_button":
+            return "error", "pagina in sleep, ma pulsante di wake-up non trovato"
+
+        if state == "unknown" or wake_button is None:
+            return "error", "stato app non verificabile: player Streamlit e wake-up assenti"
+
+        wake_button.click(timeout=10000)
+        print("APP IN SLEEP - Bottone di wake-up cliccato")
+
+        if not wait_for_streamlit_ready(page, wake_wait_seconds):
+            print("App non ancora pronta: reload di verifica...")
+            page.reload(timeout=180000, wait_until="domcontentloaded")
+            if not wait_for_streamlit_ready(page, reload_wait_seconds):
+                if page_contains_sleep_message(page):
+                    return "error", "app ancora in sleep dopo il click"
+                return "error", "app non pronta dopo click e reload"
+
+        return "woken", page.title()
+    finally:
+        page.close()
+
+
 def wake_streamlit_apps(now: datetime) -> bool:
     try:
         from playwright.sync_api import sync_playwright
@@ -190,7 +337,7 @@ def wake_streamlit_apps(now: datetime) -> bool:
         return False
 
     urls = configured_streamlit_urls()
-    all_ok = True
+    result_counts = {"active": 0, "woken": 0, "error": 0}
 
     if not urls:
         print("Result: ERROR - no Streamlit URLs configured")
@@ -210,51 +357,34 @@ def wake_streamlit_apps(now: datetime) -> bool:
             print(f"APP: {url}")
             print("-" * 80)
 
-            page = None
-
             try:
-                page = browser.new_page()
-                print("Apertura URL...")
-
-                page.goto(url, timeout=180000, wait_until="domcontentloaded")
-                page.wait_for_timeout(5000)
-
-                try:
-                    wake_button = page.get_by_text("Yes, get this app back up!")
-                    wake_button.click(timeout=10000)
-                    print("APP IN SLEEP - Bottone di wake-up cliccato")
-                    page.wait_for_timeout(60000)
-                except Exception:
-                    print("APP gia' attiva oppure bottone wake-up non presente")
-
-                try:
-                    page.reload(timeout=180000)
-                    page.wait_for_timeout(15000)
-                except Exception as exc:
-                    print(f"Reload non riuscito: {exc}")
-
-                title = page.title()
-                print(f"Titolo pagina: {title}")
-                print("Result: SUCCESS")
-
+                result, detail = wake_one_streamlit_app(browser, url)
             except Exception as exc:
-                all_ok = False
-                print(f"Result: ERROR - {exc}")
+                result, detail = "error", str(exc)
 
-            finally:
-                if page:
-                    try:
-                        page.close()
-                    except Exception:
-                        pass
+            result_counts[result] += 1
+            if result == "active":
+                print(f"Titolo pagina: {detail}")
+                print("Result: SUCCESS - APP ACTIVE")
+            elif result == "woken":
+                print(f"Titolo pagina: {detail}")
+                print("Result: SUCCESS - APP WOKEN")
+            else:
+                print(f"Result: ERROR - {detail}")
 
         browser.close()
 
     print()
     print("=" * 80)
     print("FINE STREAMLIT WAKEUP")
+    print(
+        "Summary: "
+        f"{result_counts['active']} active, "
+        f"{result_counts['woken']} woken, "
+        f"{result_counts['error']} error"
+    )
     print("=" * 80)
-    return all_ok
+    return result_counts["error"] == 0
 
 
 def main() -> int:

@@ -70,10 +70,11 @@ WAKE_TARGETS=streamlit
 Mantiene la logica storica:
 
 - apre ogni URL Streamlit con Chromium headless
-- cerca il bottone `Yes, get this app back up!`
+- riconosce le varianti correnti del bottone di wake-up
 - clicca il bottone se presente
-- ricarica la pagina
-- stampa il risultato nei log
+- verifica che l'interfaccia Streamlit sia realmente pronta
+- distingue nei log tra app gia' attiva, app risvegliata ed errore
+- termina il workflow con errore se una app resta in sleep o non e' verificabile
 
 Schedulazione attuale:
 
@@ -88,6 +89,16 @@ Il cron GitHub e' in UTC e copre gli orari italiani desiderati sia in ora solare
 ```
 
 Lo script Streamlit non filtra piu' l'orario: se GitHub avvia il workflow, anche in ritardo, il wake-up viene eseguito. Questo evita run verdi ma inutili causati dai ritardi dello scheduler GitHub.
+
+### Keep-alive GitHub Actions
+
+File:
+
+```text
+.github/workflows/keepalive.yml
+```
+
+Il workflow viene eseguito il giorno 1 e il giorno 20 di ogni mese alle 04:37 UTC e aggiorna `.github/keepalive`. Questi commit automatici mantengono attivo il repository pubblico ed evitano che GitHub disabiliti nuovamente i workflow schedulati dopo 60 giorni senza attivita'. Puo' anche essere eseguito manualmente.
 
 ### Render
 
@@ -309,6 +320,6 @@ La soluzione resta completamente gratuita:
 - GitHub Actions scheduled puo' partire con qualche minuto di ritardo.
 - Il manuale Render da due ore mantiene un job GitHub Actions attivo per circa due ore.
 - Se GitHub Actions viene disabilitato, i ping non partono.
-- Se il repository resta inattivo a lungo, GitHub puo' sospendere i workflow schedulati.
+- Il keep-alive richiede che il `GITHUB_TOKEN` del workflow possa scrivere i contenuti del repository.
 - Render potrebbe cambiare policy sui piani gratuiti o sulla gestione dello sleep.
 - La logica Streamlit richiede Playwright perche' Streamlit Cloud puo' mostrare il bottone di wake-up.

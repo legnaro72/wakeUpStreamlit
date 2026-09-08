@@ -21,7 +21,6 @@ https://locandine2word.streamlit.app/
 https://pillitool-mailinglist.streamlit.app/
 https://updatenews-cm.streamlit.app/
 https://wakeupapp.streamlit.app/
-https://accountmanager-aa.streamlit.app/
 https://top10leledidi.streamlit.app/
 https://naviga-db-subbuteo.streamlit.app/
 
