@@ -8,7 +8,8 @@ on:
       - ".github/workflows/keepalive.yml"
   schedule:
     # Repository activity prevents GitHub from disabling public scheduled workflows after 60 days.
-    - cron: "37 4 1,20 * * *"
+    - cron: "37 4 1 * *"
+    - cron: "37 4 20 * *"
   workflow_dispatch:
 
 permissions:
