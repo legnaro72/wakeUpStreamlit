@@ -23,5 +23,6 @@ https://updatenews-cm.streamlit.app/
 https://wakeupapp.streamlit.app/
 https://top10leledidi.streamlit.app/
 https://naviga-db-subbuteo.streamlit.app/
+https://irenedaniele.streamlit.app/
 
 # Add the Wake Apps dashboard URL here after deploying app.py to Streamlit.
